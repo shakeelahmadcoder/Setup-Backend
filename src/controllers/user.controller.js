@@ -150,3 +150,47 @@ await generateAccessAndRefereshTokens(user._id)
   });
     
 }
+
+export const changeCurrentPassword = async(req, res)=>{
+    const {oldPassword, newPassword} = req.body
+    const user = await User.findById(req.user?.id)
+    const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
+    if(!isPasswordCorrect){
+        return res.status(401).json({message: "Invalid old password"})
+    }
+    user.password = newPassword
+    await user.save({validateBeforeSave:false})
+
+    return res.status(200).json({message: "Password Changed Successfully"})
+
+}
+
+export const getCurrentUser = (req,res)=>{
+    return res.status(200).json({"user": req.user, message:"Current user fetched Successfully"})
+}
+
+export const updateAccountDetails = async(req, res)=>{
+    const {fullName, email} = req.body
+    if(!fullName || !email){
+        return res.status(401).json({message: "All fields are required"})
+    }
+    const user = User.findByIdAndUpdate(req.user?._id, {$set:{fullName, email: email}}, {new:true}).select("-password")
+    return res.status(200).json({"user": user, message:"Account details updated Successfully"})
+}
+
+export const updateUserAvtar = async(req, res)=>{
+    const avtarLocalPath = req.files?.path
+    if(!avtarLocalPath){
+        return res.status(401).json({message: "Avtar file is missing"})
+    }
+    const avtar = await uploadOnCloudinary(avtarLocalPath)
+
+    if(!avtar.url){
+        return res.status(401).json({message: "Error while uploading on avtar"})
+
+    }
+
+   const user = await User.findByIdAndUpdate(req.user?._id, {$set:{avtar: avtar.url}} , {new:true})
+    return res.status(200).json({"user": user, message:"Avtar updated Successfully"})
+    
+}
